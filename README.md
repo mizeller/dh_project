@@ -41,6 +41,28 @@ command
 ```
 Use EasyMocap to generate 3D keypoints and SMPL body model.
 ```bash
-command
+ns-process-data video --data data/custom/reconstruction.mp4 --output-dir data/custom2/ --num-frames-target 100
+ns-train nerfacto --viewer.websocket-port 7007 nerfstudio-data --data data/
+ns-export tsdf --load-config outputs\unnamed\nerfacto\2023-05-09_123037/config.yml --output-dir exports/mesh2/
+ns-export pointcloud --load-config outputs\unnamed\nerfacto\2023-05-09_123037/config.yml --output-dir exports/pcd/
+ns-process-data images --data data/test/custom4/ --output-dir data/test/
+ffmpeg -i reconstruction2.mp4 -r 3 test/frame%d.jpg
+ns-process-data images --matching-method exhaustive --num-downscales 0
+ns-train nerfacto --viewer.websocket-port 7007 nerfstudio-data --data data/final/recon/ --downscale-factor 1
+python apps/demo/mv1p.py test/ --out "test/output/smplx" --vis_det --vis_repro --sub_vis 1 2 --body body25 --model smpl --gender neutral --vis_smpl
+
+"C:\Program Files\Blender Foundation\Blender\blender.exe" -b -t 12 -P scripts/postprocess/convert2bvh.py -- test/smpl_model --o test/output2/
+
+ffmpeg -i input.mp4 -vf scale=320:240,setsar=1:1 output.mp4
+
+apps/demo/mv1p.py data/final/mocap/ --out data/final/mocap/output/ --vis_det --vis_repro --sub_vis 1 2 --body body25 --model smpl --gender neutral --vis_smpl
+
+scripts/preprocess/extract_video.py data/final/mocap/motion/ --openpose openpose/ --highres 0.7
+
+python apps/calibration/read_colmap.py data/final/recon/colmap/sparse/0 .bin
+
+python apps/demo/smpl_from_keypoints.py data/final/mocap/  --skel3d data/final/mocap/output//keypoints3d/ --out data/final/mocap/output/smpl/
+
+ns-export pointcloud --load-config outputs\unnamed\nerfacto\2023-05-26_082508/config.yml --output-dir exports/pcd/ --num-points 3000000 --remove-outliers True --estimate-normals False --use-bounding-box True --bounding-box-min -1.2 -1 -1 --bounding-box-max 1 1 1
 
 ```
